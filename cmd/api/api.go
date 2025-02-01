@@ -10,13 +10,22 @@ import (
 	"github.com/swarajroy/gophersocial/internal/store"
 )
 
+type dbConfig struct {
+	addr         string
+	maxOpenConns int
+	maxIdleConns int
+	maxIdleTime  time.Duration
+}
+
 type application struct {
 	config config
 	store  store.Storage
 }
 
 type config struct {
-	addr string
+	addr     string
+	dbConfig dbConfig
+	env      string
 }
 
 func (app *application) mount() http.Handler {

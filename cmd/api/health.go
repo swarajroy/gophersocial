@@ -1,9 +1,20 @@
 package main
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+)
 
 func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("ok"))
+	data := map[string]string{
+		"status":  "ok",
+		"env":     app.config.env,
+		"version": version,
+	}
 
-	app.store.Posts.Create(r.Context())
+	if err := writeJson(w, http.StatusOK, data); err != nil {
+		log.Print(err.Error())
+	}
+
+	//app.store.Posts.Create(r.Context())
 }
