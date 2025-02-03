@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
 	"net/http"
 )
 
+// handler are not able to return errors??? why ?
 func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	data := map[string]string{
 		"status":  "ok",
@@ -13,8 +13,6 @@ func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	if err := writeJson(w, http.StatusOK, data); err != nil {
-		log.Print(err.Error())
+		app.internalServerError(w, r, err)
 	}
-
-	//app.store.Posts.Create(r.Context())
 }

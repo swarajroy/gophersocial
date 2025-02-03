@@ -4,7 +4,7 @@ DB_MIGRATOR_ADDR="postgres://admin:adminpassword@localhost/social?sslmode=disabl
 
 .PHONY: migrate-create
 migrate-create:
-	@migrate create -sqq -ext sql -dir $(MIGRATIONS_PATH) $(filter-out $@,$(MAKECMDGOALS))
+	@migrate create -seq -ext sql -dir $(MIGRATIONS_PATH) $(filter-out $@,$(MAKECMDGOALS))
 
 .PHONY: migrate-up
 migrate-up:
