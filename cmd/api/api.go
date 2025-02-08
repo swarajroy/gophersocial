@@ -50,6 +50,7 @@ func (app *application) mount() http.Handler {
 
 			r.Route("/{postId}", func(r chi.Router) {
 				r.Get("/", app.getPostHandler)
+				r.Delete("/", app.deletePostHandler)
 			})
 		})
 	})

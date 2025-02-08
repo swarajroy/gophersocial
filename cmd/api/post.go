@@ -71,8 +71,36 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	comments, err := app.store.Comments.GetPostById(r.Context(), post.ID)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	post.Comments = comments
+
 	if err := writeJson(w, http.StatusOK, post); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
+}
+
+func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request) {
+	postId, err := strconv.ParseInt(chi.URLParam(r, "postId"), 10, 64)
+
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := app.store.Posts.Delete(r.Context(), postId); err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			app.notFoundError(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

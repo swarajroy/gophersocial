@@ -9,13 +9,14 @@ import (
 )
 
 type Post struct {
-	ID        int64    `json:"id"`
-	Title     string   `json:"title"`
-	Content   string   `json:"content"`
-	Tags      []string `json:"tags"`
-	UserID    int64    `json:"user_id"`
-	CreatedAt string   `json:"created_at"`
-	UpdatedAt string   `json:"updated_at"`
+	ID        int64     `json:"id"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	Tags      []string  `json:"tags"`
+	UserID    int64     `json:"user_id"`
+	CreatedAt string    `json:"created_at"`
+	UpdatedAt string    `json:"updated_at"`
+	Comments  []Comment `json:"comments"`
 }
 
 type PostStore struct {
@@ -76,4 +77,24 @@ func (ps *PostStore) GetById(ctx context.Context, postId int64) (*Post, error) {
 	}
 
 	return &post, nil
+}
+
+func (ps *PostStore) Delete(ctx context.Context, postId int64) error {
+	query := `DELETE from posts where id = $1`
+
+	result, err := ps.db.ExecContext(ctx, query, postId)
+	if err != nil {
+		return err
+	}
+
+	num, err := result.RowsAffected()
+
+	if err != nil {
+		return err
+	}
+	if num == 0 {
+		return ErrNotFound
+	}
+
+	return nil
 }
