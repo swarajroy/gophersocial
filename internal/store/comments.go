@@ -37,6 +37,9 @@ ORDER BY
 	c.created_at DESC
 	`
 
+	ctx, cancel := context.WithTimeout(ctx, QUERY_WRITE_TIME_OUR_DURATION)
+	defer cancel()
+
 	rows, err := c.db.QueryContext(ctx, query, postId)
 	if err != nil {
 		return nil, err

@@ -32,6 +32,9 @@ func (ps *PostStore) Create(ctx context.Context, post *Post) error {
 	query := `INSERT INTO posts (title, content, tags, user_id)
 	VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at`
 
+	ctx, cancel := context.WithTimeout(ctx, QUERY_WRITE_TIME_OUR_DURATION)
+	defer cancel()
+
 	err := ps.db.QueryRowContext(ctx, query,
 		post.Title,
 		post.Content,
@@ -56,6 +59,10 @@ func (ps *PostStore) GetById(ctx context.Context, postId int64) (*Post, error) {
 	posts 
 	where id = $1
 	`
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_READ_TIME_OUR_DURATION)
+	defer cancel()
+
 	var post Post
 
 	err := ps.db.QueryRowContext(ctx, query, postId).Scan(
@@ -84,6 +91,9 @@ func (ps *PostStore) GetById(ctx context.Context, postId int64) (*Post, error) {
 func (ps *PostStore) Delete(ctx context.Context, postId int64) error {
 	query := `DELETE from posts where id = $1`
 
+	ctx, cancel := context.WithTimeout(ctx, QUERY_WRITE_TIME_OUR_DURATION)
+	defer cancel()
+
 	result, err := ps.db.ExecContext(ctx, query, postId)
 	if err != nil {
 		return err
@@ -105,6 +115,9 @@ func (ps *PostStore) Update(ctx context.Context, post *Post) error {
 	query := `UPDATE posts 
 	SET title = $1, content = $2, version = version + 1
 	WHERE id = $3 and version = $4 RETURNING version`
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_WRITE_TIME_OUR_DURATION)
+	defer cancel()
 
 	row := ps.db.QueryRowContext(ctx, query, post.Title, post.Content, post.ID, post.Version)
 

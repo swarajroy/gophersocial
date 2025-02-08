@@ -22,9 +22,12 @@ func NewUserStore(db *sql.DB) *UserStore {
 }
 
 func (us *UserStore) Create(ctx context.Context, user *User) error {
-	
+
 	query := `INSERT INTO users (username, email, password) 
 	VALUES ($1, $2, $3) RETURNING (id, username, created_at)`
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_WRITE_TIME_OUR_DURATION)
+	defer cancel()
 
 	err := us.db.QueryRowContext(ctx, query,
 		user.Username,

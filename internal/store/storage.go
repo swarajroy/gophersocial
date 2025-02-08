@@ -4,6 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
+)
+
+const (
+	QUERY_READ_TIME_OUR_DURATION  = time.Second * 3
+	QUERY_WRITE_TIME_OUR_DURATION = time.Second * 5
 )
 
 var (
