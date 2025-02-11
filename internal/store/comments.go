@@ -6,12 +6,12 @@ import (
 )
 
 type Comment struct {
-	ID         int64  `json:"id"`
-	PostID     int64  `json:"post_id"`
-	UserID     int64  `json:"user_id"`
-	Content    string `json:"content"`
-	Created_At string `json:"created_at"`
-	User       User   `json:"user"`
+	ID        int64  `json:"id"`
+	PostID    int64  `json:"post_id"`
+	UserID    int64  `json:"user_id"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+	User      User   `json:"user"`
 }
 
 type CommentStore struct {
@@ -51,7 +51,7 @@ ORDER BY
 	for rows.Next() {
 		var c Comment
 		c.User = User{}
-		err := rows.Scan(&c.ID, &c.UserID, &c.PostID, &c.Content, &c.Created_At, &c.User.ID, &c.User.Username)
+		err := rows.Scan(&c.ID, &c.UserID, &c.PostID, &c.Content, &c.CreatedAt, &c.User.ID, &c.User.Username)
 		if err != nil {
 			return nil, err
 		}
@@ -59,4 +59,27 @@ ORDER BY
 	}
 
 	return comments, nil
+}
+
+func (cs *CommentStore) Create(ctx context.Context, comment *Comment) error {
+	query := `INSERT INTO comments (post_id, user_id, content)
+	VALUES ($1, $2, $3) RETURNING id, created_at`
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_WRITE_TIME_OUR_DURATION)
+	defer cancel()
+
+	err := cs.db.QueryRowContext(ctx, query,
+		comment.PostID,
+		comment.UserID,
+		comment.Content,
+	).Scan(
+		&comment.ID,
+		&comment.CreatedAt,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -1,1 +1,1 @@
-DROP TABLE IF EXITS comments;
+DROP TABLE IF EXISTS comments;
