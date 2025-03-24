@@ -27,7 +27,7 @@ func main() {
 	}
 	defer db.Close()
 
-	log.Println("database connection pooled configured successfully!")
+	log.Println("database connections pool configured successfully!")
 
 	store := store.NewStorage(db)
 

@@ -137,18 +137,24 @@ func generateUsers(num int) []*store.User {
 	return users
 }
 
+func getRandInt(lower, upper int) int {
+	return rand.Intn(upper-lower) + lower
+}
+
 func generatePosts(num int, users []*store.User) []*store.Post {
 	posts := make([]*store.Post, num)
 	for i := 0; i < num; i++ {
 		user := users[rand.Intn(len(users))]
+		tagsLen := getRandInt(1, 5)
+		tagsSlice := make([]string, tagsLen)
+		for i := 0; i < tagsLen; i++ {
+			tagsSlice[i] = tags[rand.Intn(len(tags))]
+		}
 		posts[i] = &store.Post{
 			Title:   titles[rand.Intn(len(titles))],
 			Content: contents[rand.Intn(len(contents))],
-			Tags: []string{
-				tags[rand.Intn(len(tags))],
-				tags[rand.Intn(len(tags))],
-			},
-			UserID: user.ID,
+			Tags:    tagsSlice,
+			UserID:  user.ID,
 		}
 	}
 	return posts
