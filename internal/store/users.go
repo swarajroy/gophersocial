@@ -45,3 +45,33 @@ func (us *UserStore) Create(ctx context.Context, user *User) error {
 
 	return nil
 }
+
+func (us *UserStore) GetById(ctx context.Context, userID int64) (*User, error) {
+	query := `SELECT id, username, email, password, created_at 
+	FROM 
+	users 
+	WHERE id = $1`
+	var user = &User{}
+
+	err := us.db.QueryRowContext(ctx,
+		query,
+		userID,
+	).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.Password,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, err
+		default:
+			return nil, err
+		}
+	}
+
+	return user, nil
+}
