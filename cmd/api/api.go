@@ -59,10 +59,14 @@ func (app *application) mount() http.Handler {
 
 		r.Route("/users", func(r chi.Router) {
 
-			r.Route("/{userID}", func(r chi.Router) {
+			r.Route("/{userId}", func(r chi.Router) {
+				r.Use(app.userContextMiddleware)
 
 				r.Get("/", app.getUserHandler)
-			
+
+				r.Put("/follow", app.putFollowHandler)
+				r.Put("/unfollow", app.putUnfollowHandler)
+
 			})
 		})
 	})
