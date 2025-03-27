@@ -40,10 +40,15 @@ func (app *application) putFollowHandler(w http.ResponseWriter, r *http.Request)
 		app.badRequestError(w, r, err)
 		return
 	}
-
 	if err := app.store.Followers.Follow(r.Context(), userToFollow.ID, payload.UserId); err != nil {
-		app.internalServerError(w, r, err)
-		return
+		switch err {
+		case store.ErrConflict:
+			app.conflictError(w, r, err)
+			return
+		default:
+			app.internalServerError(w, r, err)
+			return
+		}
 	}
 
 	if err := app.jsonResponse(w, http.StatusNoContent, nil); err != nil {
