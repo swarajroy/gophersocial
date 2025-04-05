@@ -34,7 +34,7 @@ func NewPostStore(db *sql.DB) *PostStore {
 	return &PostStore{db: db}
 }
 
-func (ps *PostStore) GetUserFeed(ctx context.Context, userID int64) ([]PostWithMetadata, error) {
+func (ps *PostStore) GetUserFeed(ctx context.Context, userID int64, fq PaginatedQuery) ([]PostWithMetadata, error) {
 	query := `
 		SELECT p.id, p.user_id, p.title, p.content, p.tags, p.created_at, COUNT(c.id) AS comments_count, u.username
 			FROM 
@@ -44,12 +44,13 @@ func (ps *PostStore) GetUserFeed(ctx context.Context, userID int64) ([]PostWithM
 			JOIN followers f ON f.follower_id = p.user_id or p.user_id = $1
 			WHERE f.user_id = $1 or p.user_id = $1
 			GROUP BY p.id, u.username
-			ORDER BY p.created_at DESC;
+			ORDER BY p.created_at `+fq.Sort+`
+			LIMIT $2 OFFSET $3
 	`
 	ctx, cancel := context.WithTimeout(ctx, QUERY_READ_TIME_OUR_DURATION)
 	defer cancel()
 
-	rows, err := ps.db.QueryContext(ctx, query, userID)
+	rows, err := ps.db.QueryContext(ctx, query, userID, fq.Limit, fq.Offset)
 	if err != nil {
 		return nil, err
 	}
