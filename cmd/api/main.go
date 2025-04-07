@@ -5,14 +5,33 @@ import (
 	"github.com/swarajroy/gophersocial/internal/db"
 	"github.com/swarajroy/gophersocial/internal/env"
 	"github.com/swarajroy/gophersocial/internal/store"
+	"go.uber.org/zap"
 )
 
 const version = "0.0.1"
 
+//	@title			GopherSocial API
+//	@description	API for Gopher social network.
+//	@termsOfService	http://swagger.io/terms/
+
+//	@contact.name	API Support
+//	@contact.url	http://www.swagger.io/support
+//	@contact.email	support@swagger.io
+
+//	@license.name	Apache 2.0
+//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @BasePath					/v1
+//
+// @securityDefinitions.apikey	ApiKeyAuth
+// @in							header
+// @name						Authorization
+// @description
 func main() {
 	cfg := config{
-		addr: env.GetString("ADDR", ":8080"),
-		env:  env.GetString("ENV", "dev"),
+		addr:   env.GetString("ADDR", ":8080"),
+		apiURL: env.GetString("EXTERNAL_URL", "localhost:8080"),
+		env:    env.GetString("ENV", "dev"),
 		dbConfig: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres://admin:adminpassword@localhost/social?sslmode=disable"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
@@ -21,19 +40,25 @@ func main() {
 		},
 	}
 
+	//Logger
+	logger := zap.Must(zap.NewProduction()).Sugar()
+	defer logger.Sync()
+
+	//Database
 	db, err := db.New(cfg.dbConfig.addr, cfg.dbConfig.maxOpenConns, cfg.dbConfig.maxIdleConns, cfg.dbConfig.maxIdleTime)
 	if err != nil {
-		log.Panic("connection to db failed!")
+		logger.Fatal("connection to db failed!")
 	}
 	defer db.Close()
 
-	log.Println("database connections pool configured successfully!")
+	logger.Info("database connections pool configured successfully!")
 
 	store := store.NewStorage(db)
 
 	app := &application{
 		config: cfg,
 		store:  store,
+		logger: logger,
 	}
 	mux := app.mount()
 

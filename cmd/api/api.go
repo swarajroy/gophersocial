@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/sirupsen/logrus"
+	httpSwagger "github.com/swaggo/http-swagger/v2" // http-swagger middleware
+	"github.com/swarajroy/gophersocial/docs"
 	"github.com/swarajroy/gophersocial/internal/store"
+	"go.uber.org/zap"
 )
 
 type dbConfig struct {
@@ -20,12 +23,14 @@ type dbConfig struct {
 type application struct {
 	config config
 	store  store.Storage
+	logger *zap.SugaredLogger
 }
 
 type config struct {
 	addr     string
 	dbConfig dbConfig
 	env      string
+	apiURL   string
 }
 
 func (app *application) mount() http.Handler {
@@ -42,8 +47,11 @@ func (app *application) mount() http.Handler {
 	// processing should be stopped.
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Route("/api/v1", func(r chi.Router) {
+	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
+
+		docsURL := fmt.Sprintf("%s/v1/swagger/doc.json", app.config.apiURL)
+		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
 		r.Route("/posts", func(r chi.Router) {
 			r.Post("/", app.createPostHandler)
@@ -79,6 +87,10 @@ func (app *application) mount() http.Handler {
 }
 
 func (a *application) run(mux http.Handler) error {
+	// Docs
+	docs.SwaggerInfo.Version = version
+	docs.SwaggerInfo.Host = a.config.apiURL
+	docs.SwaggerInfo.BasePath = "/v1"
 
 	srv := &http.Server{
 		Addr:         a.config.addr,
@@ -88,6 +100,6 @@ func (a *application) run(mux http.Handler) error {
 		IdleTimeout:  time.Minute,
 	}
 
-	logrus.Infof("HTTP server starting on %s", a.config.addr)
+	a.logger.Infow("server started", "addr", a.config.addr, "env", a.config.env)
 	return srv.ListenAndServe()
 }
