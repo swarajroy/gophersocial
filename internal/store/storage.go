@@ -28,6 +28,7 @@ type Storage struct {
 	Users interface {
 		Create(context.Context, *User) error
 		GetById(context.Context, int64) (*User, error)
+		CreateAndInvite(ctx context.Context, user *User, token string) error
 	}
 	Comments interface {
 		Create(context.Context, *Comment) error
