@@ -21,7 +21,7 @@ const version = "0.0.1"
 //	@license.name	Apache 2.0
 //	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @BasePath					/v1
+// @BasePath	    /v1
 //
 // @securityDefinitions.apikey	ApiKeyAuth
 // @in							header
@@ -37,6 +37,9 @@ func main() {
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetDuration("DB_MAX_IDLE_TIME", "15m"),
+		},
+		email: emailConfig{
+			expiry: env.GetDuration("EMAIL_INVITATION_EXPIRY", "24h"),
 		},
 	}
 

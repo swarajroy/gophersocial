@@ -3,8 +3,15 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrDuplicateEmail    = errors.New("duplicate email")
+	ErrDuplicateUsername = errors.New("duplicate username")
 )
 
 type User struct {
@@ -38,7 +45,7 @@ func NewUserStore(db *sql.DB) *UserStore {
 	return &UserStore{db: db}
 }
 
-func (us *UserStore) Create(ctx context.Context, user *User) error {
+func (us *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 
 	query := `INSERT INTO users (username, email, password) 
 	VALUES ($1, $2, $3) RETURNING id, username, created_at`
@@ -46,10 +53,10 @@ func (us *UserStore) Create(ctx context.Context, user *User) error {
 	ctx, cancel := context.WithTimeout(ctx, QUERY_WRITE_TIME_OUR_DURATION)
 	defer cancel()
 
-	err := us.db.QueryRowContext(ctx, query,
+	err := tx.QueryRowContext(ctx, query,
 		user.Username,
 		user.Email,
-		user.Password,
+		user.Password.hash,
 	).Scan(
 		&user.ID,
 		&user.Username,
@@ -57,7 +64,14 @@ func (us *UserStore) Create(ctx context.Context, user *User) error {
 	)
 
 	if err != nil {
-		return err
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique key constraint (users_email_key)`:
+			return ErrDuplicateEmail
+		case err.Error() == `pq: duplicate key value violates unique key constraint (users_username_key)`:
+			return ErrDuplicateUsername
+		default:
+			return err
+		}
 	}
 
 	return nil
@@ -97,6 +111,33 @@ func (us *UserStore) GetById(ctx context.Context, userID int64) (*User, error) {
 	return user, nil
 }
 
-func (u *UserStore) CreateAndInvite(ctx context.Context, user *User, token string) error {
+func (u *UserStore) createUserInvitation(ctx context.Context, tx *sql.Tx, user *User, token string, invitationExp time.Duration) error {
+
+	query := `INSERT INTO user_invitations (token, user_id, expiry) VALUES ($1, $2, $3)`
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_WRITE_TIME_OUR_DURATION)
+	defer cancel()
+
+	_, err := tx.ExecContext(ctx, query, token, user.ID, time.Now().Add(invitationExp))
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (u *UserStore) CreateAndInvite(ctx context.Context, user *User, token string, invitationExp time.Duration) error {
+	//with transaction wrapper
+	return WithTx(u.db, ctx, func(tx *sql.Tx) error {
+		// create user
+		if err := u.Create(ctx, tx, user); err != nil {
+			return err
+		}
+		// create invitation
+		if err := u.createUserInvitation(ctx, tx, user, token, invitationExp); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

@@ -19,7 +19,7 @@ func main() {
 		log.Fatalf("error occurred while establishing connection to the DB!")
 	}
 	defer conn.Close()
-	
+
 	store := store.NewStorage(conn)
-	db.Seed(store)
+	db.Seed(store, conn)
 }

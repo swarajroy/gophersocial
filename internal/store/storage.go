@@ -13,8 +13,8 @@ const (
 )
 
 var (
-	ErrNotFound = errors.New("record not found")
-	ErrConflict = errors.New("resource already exists")
+	ErrNotFound          = errors.New("record not found")
+	ErrConflict          = errors.New("resource already exists")
 )
 
 type Storage struct {
@@ -26,9 +26,9 @@ type Storage struct {
 		GetUserFeed(context.Context, int64, PaginatedQuery) ([]PostWithMetadata, error)
 	}
 	Users interface {
-		Create(context.Context, *User) error
+		Create(context.Context, *sql.Tx, *User) error
 		GetById(context.Context, int64) (*User, error)
-		CreateAndInvite(ctx context.Context, user *User, token string) error
+		CreateAndInvite(ctx context.Context, user *User, token string, invitationExp time.Duration) error
 	}
 	Comments interface {
 		Create(context.Context, *Comment) error
@@ -47,4 +47,18 @@ func NewStorage(db *sql.DB) Storage {
 		Comments:  NewCommentStore(db),
 		Followers: NewFollowers(db),
 	}
+}
+
+func WithTx(db *sql.DB, ctx context.Context, fn func(tx *sql.Tx) error) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
 }

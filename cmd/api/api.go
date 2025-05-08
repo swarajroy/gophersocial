@@ -31,6 +31,11 @@ type config struct {
 	dbConfig dbConfig
 	env      string
 	apiURL   string
+	email    emailConfig
+}
+
+type emailConfig struct {
+	expiry time.Duration
 }
 
 func (app *application) mount() http.Handler {
@@ -50,7 +55,7 @@ func (app *application) mount() http.Handler {
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/health", app.healthCheckHandler)
 
-		docsURL := fmt.Sprintf("%s/v1/swagger/doc.json", app.config.apiURL)
+		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
 		r.Route("/posts", func(r chi.Router) {
@@ -77,13 +82,13 @@ func (app *application) mount() http.Handler {
 
 			})
 
-			r.Route("/authentication", func(r chi.Router) {
-				r.Post("/", app.postAuthenticateUserHandler)
-			})
-
 			r.Group(func(r chi.Router) {
 				r.Get("/feed", app.getUserFeedHandler)
 			})
+		})
+
+		r.Route("/authentication", func(r chi.Router) {
+			r.Post("/user", app.postAuthenticateUserHandler)
 		})
 	})
 
