@@ -13,8 +13,8 @@ const (
 )
 
 var (
-	ErrNotFound          = errors.New("record not found")
-	ErrConflict          = errors.New("resource already exists")
+	ErrNotFound = errors.New("record not found")
+	ErrConflict = errors.New("resource already exists")
 )
 
 type Storage struct {
@@ -29,6 +29,7 @@ type Storage struct {
 		Create(context.Context, *sql.Tx, *User) error
 		GetById(context.Context, int64) (*User, error)
 		CreateAndInvite(ctx context.Context, user *User, token string, invitationExp time.Duration) error
+		Activate(context.Context, string) error
 	}
 	Comments interface {
 		Create(context.Context, *Comment) error
