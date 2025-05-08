@@ -11,7 +11,7 @@ import (
 
 type RegisterUserPayload struct {
 	Username string `json:"username" validate:"required,min=5,max=10"`
-	Email    string `json:"email" validate:"required,emails"`
+	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=3,max=15"`
 }
 
