@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/swarajroy/gophersocial/internal/db"
 	"github.com/swarajroy/gophersocial/internal/env"
+	"github.com/swarajroy/gophersocial/internal/mailer"
 	"github.com/swarajroy/gophersocial/internal/store"
 	"go.uber.org/zap"
 )
@@ -29,9 +30,10 @@ const version = "0.0.1"
 // @description
 func main() {
 	cfg := config{
-		addr:   env.GetString("ADDR", ":8080"),
-		apiURL: env.GetString("EXTERNAL_URL", "localhost:8080"),
-		env:    env.GetString("ENV", "dev"),
+		addr:        env.GetString("ADDR", ":8080"),
+		apiURL:      env.GetString("EXTERNAL_URL", "http://localhost:8080"),
+		frontendURL: env.GetString("FRONTEND_URL", "http://localhost:4000"),
+		env:         env.GetString("ENV", "dev"),
 		dbConfig: dbConfig{
 			addr:         env.GetString("DB_ADDR", "postgres://admin:adminpassword@localhost/social?sslmode=disable"),
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
@@ -39,6 +41,13 @@ func main() {
 			maxIdleTime:  env.GetDuration("DB_MAX_IDLE_TIME", "15m"),
 		},
 		email: emailConfig{
+			fromEmail: env.GetString("FROM_EMAIL", ""),
+			sendGrid: sendGridConfig{
+				apiKey: env.GetString("SENDGRID_API_KEY", ""),
+			},
+			mailTrap: mailTrapConfig{
+				apiKey: env.GetString("MAILTRAP_API_KEY", ""),
+			},
 			expiry: env.GetDuration("EMAIL_INVITATION_EXPIRY", "24h"),
 		},
 	}
@@ -56,13 +65,24 @@ func main() {
 
 	logger.Info("database connections pool configured successfully!")
 
+	// store
 	store := store.NewStorage(db)
+
+	// mailer
+	templateBuilder := mailer.NewTemplateBuilder()
+	//mailer, err := mailer.NewSendGridMailer(cfg.email.fromEmail, cfg.email.sendGrid.apiKey, templateBuilder)
+	mailer, err := mailer.NewMailtrapMailer(cfg.email.fromEmail, cfg.email.mailTrap.apiKey, templateBuilder)
+	if err != nil {
+		logger.Fatal("mailer configuration failed!")
+	}
 
 	app := &application{
 		config: cfg,
 		store:  store,
 		logger: logger,
+		mailer: mailer,
 	}
+
 	mux := app.mount()
 
 	log.Fatal(app.run(mux))
