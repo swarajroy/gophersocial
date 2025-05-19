@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -84,7 +85,7 @@ func (us *UserStore) GetById(ctx context.Context, userID int64) (*User, error) {
 	query := `SELECT id, username, email, password, created_at 
 	FROM 
 	users 
-	WHERE id = $1`
+	WHERE id = $1 and is_active = true`
 
 	ctx, cancel := context.WithTimeout(ctx, QUERY_READ_TIME_OUR_DURATION)
 	defer cancel()
@@ -98,14 +99,49 @@ func (us *UserStore) GetById(ctx context.Context, userID int64) (*User, error) {
 		&user.ID,
 		&user.Username,
 		&user.Email,
-		&user.Password,
+		&user.Password.hash,
 		&user.CreatedAt,
 	)
 
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:
+			return nil, ErrNotFound
+		default:
 			return nil, err
+		}
+	}
+
+	return user, nil
+}
+
+func (us *UserStore) GetByEmail(ctx context.Context, email string) (*User, error) {
+	fmt.Printf("enter GetByEmail email = %+v\n", email)
+	query := `SELECT id, username, email, password, created_at 
+	FROM 
+	users 
+	WHERE email = $1 and is_active = true`
+
+	ctx, cancel := context.WithTimeout(ctx, QUERY_READ_TIME_OUR_DURATION)
+	defer cancel()
+
+	var user = &User{}
+
+	err := us.db.QueryRowContext(ctx,
+		query,
+		email,
+	).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.Password.hash,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		switch err {
+		case sql.ErrNoRows:
+			return nil, ErrNotFound
 		default:
 			return nil, err
 		}
@@ -256,7 +292,7 @@ func (us *UserStore) delete(ctx context.Context, tx *sql.Tx, userID int64) error
 	query := `DELETE from users where user_id = $1`
 
 	_, err := tx.ExecContext(ctx, query, userID)
-	
+
 	if err != nil {
 		switch err {
 		case sql.ErrNoRows:

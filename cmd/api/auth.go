@@ -78,8 +78,7 @@ func (app *application) postAuthenticateUserHandler(w http.ResponseWriter, r *ht
 		Username:      user.Username,
 		ActivationURL: activationURL,
 	}
-	_, err := app.mailer.Send(ctx, mailer.UserInvitationTemplate, user.Username, user.Email, vars, !isProdEnv)
-
+	_, err := (app.mailer.Send(ctx, mailer.UserInvitationTemplate, user.Username, user.Email, vars, !isProdEnv))
 	if err != nil {
 		app.logger.Errorw("error sending welcome email", "error", err)
 
@@ -97,4 +96,46 @@ func (app *application) postAuthenticateUserHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
+}
+
+type CreateTokenPayload struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=3,max=15"`
+}
+
+func (app *application) postTokenHandler(w http.ResponseWriter, r *http.Request) {
+	//parse payload creds
+	var payload CreateTokenPayload
+
+	if err := readJson(w, r, &payload); err != nil {
+		app.badRequestError(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequestError(w, r, err)
+		return
+	}
+	//fetch the user from the creds
+	user, err := app.store.Users.GetByEmail(r.Context(), payload.Email)
+	if err != nil {
+		switch err {
+		case store.ErrNotFound:
+			app.unauthorizedError(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+	//generate the token -> add claims
+	token, err := app.auth.GenerateToken(user)
+	if err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
+	//send it to the client
+	if err := app.jsonResponse(w, http.StatusCreated, token); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
 }

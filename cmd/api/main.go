@@ -2,6 +2,7 @@ package main
 
 import (
 	log "github.com/sirupsen/logrus"
+	"github.com/swarajroy/gophersocial/internal/auth"
 	"github.com/swarajroy/gophersocial/internal/db"
 	"github.com/swarajroy/gophersocial/internal/env"
 	"github.com/swarajroy/gophersocial/internal/mailer"
@@ -50,6 +51,17 @@ func main() {
 			},
 			expiry: env.GetDuration("EMAIL_INVITATION_EXPIRY", "24h"),
 		},
+		auth: authConfig{
+			basic: basicAuthConfig{
+				user: env.GetString("BASIC_AUTH_USER", "admin"),
+				pass: env.GetString("BASIC_AUTH_PASS", "admin"),
+			},
+			jwt: jwtConfig{
+				secret: env.GetString("JWT_AUTH_SECRET", "example"), //TODO - dont ship defaults to PROD
+				host:   env.GetString("JWT_HOST", "gophersocial"),
+				exp:    env.GetDuration("JWT_EXP", "72h"),
+			},
+		},
 	}
 
 	//Logger
@@ -76,11 +88,14 @@ func main() {
 		logger.Fatal("mailer configuration failed!")
 	}
 
+	// stateless jwt token generator
+	tokenGenerator := auth.NewJWTTokenGenerator(cfg.auth.jwt.secret, cfg.auth.jwt.host, cfg.auth.jwt.exp)
 	app := &application{
 		config: cfg,
 		store:  store,
 		logger: logger,
 		mailer: mailer,
+		auth:   tokenGenerator,
 	}
 
 	mux := app.mount()
