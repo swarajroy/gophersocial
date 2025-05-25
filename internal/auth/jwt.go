@@ -1,6 +1,9 @@
 package auth
 
 import (
+	"fmt"
+	"log"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -26,7 +29,7 @@ func (jtg *JWTTokenGenerator) GenerateToken(user *store.User) (string, error) {
 		"iss": jtg.host,
 		"sub": user.ID,
 		"aud": jtg.host,
-		"exp": time.Now().Add(jtg.exp),
+		"exp": time.Now().Add(jtg.exp).Unix(),
 		"nbf": time.Now().Unix(),
 		"iat": time.Now().Unix(),
 	}
@@ -40,6 +43,28 @@ func (jtg *JWTTokenGenerator) GenerateToken(user *store.User) (string, error) {
 	return tokenString, nil
 }
 
-func (jtg *JWTTokenGenerator) ValidateToken(token string) (string, error) {
-	return "", nil
+func (jtg *JWTTokenGenerator) ValidateToken(token string) (int64, error) {
+	jwtToken, err := jwt.Parse(token, func(t *jwt.Token) (any, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method %v", t.Header["alg"])
+		}
+		return []byte(jtg.secret), nil
+	},
+		jwt.WithAudience(jtg.host),
+		jwt.WithExpirationRequired(),
+		jwt.WithIssuer(jtg.host),
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),
+	)
+	if err != nil {
+		log.Printf("error is %+v \n", err)
+		return 0, err
+	}
+	claims, _ := jwtToken.Claims.(jwt.MapClaims)
+
+	userID, err := strconv.ParseInt(fmt.Sprintf("%.f", claims["sub"]), 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return userID, nil
 }

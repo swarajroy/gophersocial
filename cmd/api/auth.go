@@ -78,7 +78,7 @@ func (app *application) postAuthenticateUserHandler(w http.ResponseWriter, r *ht
 		Username:      user.Username,
 		ActivationURL: activationURL,
 	}
-	_, err := (app.mailer.Send(ctx, mailer.UserInvitationTemplate, user.Username, user.Email, vars, !isProdEnv))
+	_, err := app.mailer.Send(ctx, mailer.UserInvitationTemplate, user.Username, user.Email, vars, !isProdEnv)
 	if err != nil {
 		app.logger.Errorw("error sending welcome email", "error", err)
 

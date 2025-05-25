@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -44,4 +45,36 @@ func (app *application) BasicAuthMiddleware() func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func (app *application) AuthTokenMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			app.unauthorizedError(w, r, fmt.Errorf("unauthorized"))
+			return
+		}
+
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			app.unauthorizedError(w, r, fmt.Errorf("header 'Authorization' is malformed"))
+			return
+		}
+
+		userID, err := app.auth.ValidateToken(parts[1])
+		if err != nil {
+			app.unauthorizedError(w, r, err)
+			return
+		}
+
+		ctx := r.Context()
+		user, err := app.store.Users.GetById(ctx, userID)
+		if err != nil {
+			app.unauthorizedError(w, r, err)
+			return
+		}
+
+		ctx = context.WithValue(ctx, userCtx, user)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

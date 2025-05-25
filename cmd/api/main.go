@@ -59,7 +59,7 @@ func main() {
 			jwt: jwtConfig{
 				secret: env.GetString("JWT_AUTH_SECRET", "example"), //TODO - dont ship defaults to PROD
 				host:   env.GetString("JWT_HOST", "gophersocial"),
-				exp:    env.GetDuration("JWT_EXP", "72h"),
+				exp:    env.GetDuration("JWT_AUTH_TOKEN_EXP", "24h"),
 			},
 		},
 	}

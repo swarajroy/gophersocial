@@ -28,6 +28,11 @@ func NewMailtrapMailer(fromEmail, apiKey string, templateBuilder *TemplateBuilde
 }
 
 func (mt *MailtrapMailer) Send(ctx context.Context, templateFile, username, email string, data any, isSandbox bool) (int, error) {
+
+	if isSandbox {
+		return 200, nil
+	}
+
 	//template parsing and building
 	res, err := mt.templateBuilder.build(templateFile, data)
 	if err != nil {
