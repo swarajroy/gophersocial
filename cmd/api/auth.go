@@ -127,6 +127,11 @@ func (app *application) postTokenHandler(w http.ResponseWriter, r *http.Request)
 		}
 		return
 	}
+
+	if err := user.Password.IsValid(payload.Password); err != nil {
+		app.unauthorizedError(w, r, err)
+		return
+	}
 	//generate the token -> add claims
 	token, err := app.auth.GenerateToken(user)
 	if err != nil {

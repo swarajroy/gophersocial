@@ -15,6 +15,7 @@ import (
 var (
 	ErrDuplicateEmail    = errors.New("duplicate email")
 	ErrDuplicateUsername = errors.New("duplicate username")
+	ErrUnauthenticated   = errors.New("unauthenticated")
 )
 
 type User struct {
@@ -29,6 +30,10 @@ type User struct {
 type password struct {
 	text *string
 	hash []byte
+}
+
+func (p *password) IsValid(input string) error {
+	return bcrypt.CompareHashAndPassword(p.hash, []byte(input))
 }
 
 func (p *password) Set(text string) error {
