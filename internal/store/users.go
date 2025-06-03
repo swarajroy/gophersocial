@@ -25,8 +25,8 @@ type User struct {
 	Password  password `json:"-"`
 	CreatedAt string   `json:"created_at"`
 	IsActive  bool     `json:"is_active"`
-	RoleID    int64    `json:"role_id"`
-	Role      Role     `json:"role"`
+	RoleID    int64    `json:"-"`
+	Role      Role     `json:"-"`
 }
 
 type password struct {
