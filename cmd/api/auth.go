@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -11,10 +13,15 @@ import (
 	"github.com/swarajroy/gophersocial/internal/store"
 )
 
+var (
+	ErrRequiresHigherPrivelege = errors.New("requires higher privelege")
+)
+
 type RegisterUserPayload struct {
 	Username string `json:"username" validate:"required,min=5,max=10"`
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,min=3,max=15"`
+	Role     string `json:"role" validate:"required,min=4,max=20"`
 }
 
 type UserWithToken struct {
@@ -35,9 +42,14 @@ func (app *application) postAuthenticateUserHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
+	role := store.Role{
+		Name: payload.Role,
+	}
+
 	user := &store.User{
 		Username: payload.Username,
 		Email:    payload.Email,
+		Role:     role,
 	}
 
 	//hash
@@ -62,6 +74,7 @@ func (app *application) postAuthenticateUserHandler(w http.ResponseWriter, r *ht
 			app.internalServerError(w, r, err)
 		}
 	}
+
 	userWithToken := UserWithToken{
 		User:  user,
 		Token: plainToken,
@@ -143,4 +156,41 @@ func (app *application) postTokenHandler(w http.ResponseWriter, r *http.Request)
 		app.internalServerError(w, r, err)
 		return
 	}
+}
+
+func (app *application) checkPostOwnership(requiredRole string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// if the user is the one doing something with the post
+		user := getUserFromCtx(r)
+		post := getPostFromCtx(r)
+
+		if post.UserID == user.ID {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// check for role precedence
+		allowed, err := app.checkRolePrecedence(r.Context(), user, requiredRole)
+		if err != nil {
+			app.internalServerError(w, r, err)
+			return
+		}
+
+		if !allowed {
+			app.forbiddenResponse(w, r, ErrRequiresHigherPrivelege)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
+}
+
+func (app *application) checkRolePrecedence(ctx context.Context, user *store.User, requiredRole string) (bool, error) {
+
+	role, err := app.store.Roles.GetRoleByName(ctx, requiredRole)
+	if err != nil {
+		return false, err
+	}
+
+	return user.Role.Level >= role.Level, nil
 }

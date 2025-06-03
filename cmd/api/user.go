@@ -1,10 +1,7 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/swarajroy/gophersocial/internal/store"
@@ -77,32 +74,6 @@ func (app *application) putUnfollowHandler(w http.ResponseWriter, r *http.Reques
 		app.internalServerError(w, r, err)
 		return
 	}
-}
-
-func (app *application) userContextMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userId, err := strconv.ParseInt(chi.URLParam(r, "userId"), 10, 64)
-
-		if err != nil {
-			app.internalServerError(w, r, err)
-			return
-		}
-
-		user, err := app.store.Users.GetById(r.Context(), userId)
-
-		if err != nil {
-			switch {
-			case errors.Is(err, store.ErrNotFound):
-				app.notFoundError(w, r, err)
-			default:
-				app.internalServerError(w, r, err)
-			}
-			return
-		}
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, userCtx, user)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
 }
 
 func getUserFromCtx(r *http.Request) *store.User {
