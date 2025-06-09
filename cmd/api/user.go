@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/swarajroy/gophersocial/internal/store"
@@ -14,7 +15,22 @@ const (
 )
 
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
-	user := getUserFromCtx(r)
+	userId, err := strconv.ParseInt(chi.URLParam(r, "userId"), 10, 64)
+	if err != nil || userId < 1 {
+		app.badRequestError(w, r, err)
+		return
+	}
+
+	user, err := app.getUser(r.Context(), userId)
+	if err != nil {
+		switch err {
+		case store.ErrNotFound:
+			app.notFoundError(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
 
 	if err := app.jsonResponse(w, http.StatusOK, user); err != nil {
 		app.internalServerError(w, r, err)

@@ -12,6 +12,7 @@ import (
 	"github.com/swarajroy/gophersocial/internal/auth"
 	"github.com/swarajroy/gophersocial/internal/mailer"
 	"github.com/swarajroy/gophersocial/internal/store"
+	"github.com/swarajroy/gophersocial/internal/store/cache"
 	"go.uber.org/zap"
 )
 
@@ -25,6 +26,7 @@ type dbConfig struct {
 type application struct {
 	config config
 	store  store.Storage
+	cache  cache.Storage
 	logger *zap.SugaredLogger
 	mailer mailer.Client
 	auth   auth.TokenGenerator
@@ -54,6 +56,18 @@ type config struct {
 	email       emailConfig
 	frontendURL string
 	auth        authConfig
+	cache       cacheConfig
+}
+
+type cacheConfig struct {
+	redisCfg redisConfig
+}
+
+type redisConfig struct {
+	addr    string
+	pw      string
+	db      int
+	enabled bool
 }
 
 type emailConfig struct {

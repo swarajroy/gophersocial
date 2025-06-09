@@ -7,6 +7,7 @@ import (
 	"github.com/swarajroy/gophersocial/internal/env"
 	"github.com/swarajroy/gophersocial/internal/mailer"
 	"github.com/swarajroy/gophersocial/internal/store"
+	"github.com/swarajroy/gophersocial/internal/store/cache"
 	"go.uber.org/zap"
 )
 
@@ -40,6 +41,14 @@ func main() {
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30),
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30),
 			maxIdleTime:  env.GetDuration("DB_MAX_IDLE_TIME", "15m"),
+		},
+		cache: cacheConfig{
+			redisCfg: redisConfig{
+				addr:    env.GetString("REDIS_ADDR", "localhost:6379"),
+				pw:      env.GetString("REDIS_PASSWORD", ""),
+				db:      env.GetInt("REDIS_DB", 0),
+				enabled: env.GetBool("REDIS_ENABLED", false),
+			},
 		},
 		email: emailConfig{
 			fromEmail: env.GetString("FROM_EMAIL", ""),
@@ -80,6 +89,15 @@ func main() {
 	// store
 	store := store.NewStorage(db)
 
+	// caching
+	var cacheStorage cache.Storage
+	if cfg.cache.redisCfg.enabled {
+		redisClient := cache.NewRedisClient(cfg.cache.redisCfg.addr, cfg.cache.redisCfg.pw, cfg.cache.redisCfg.db)
+		cacheStorage = cache.NewRedisStorage(redisClient)
+		logger.Infow("redis cache storage connection successul!")
+		defer redisClient.Close()
+	}
+
 	// mailer
 	templateBuilder := mailer.NewTemplateBuilder()
 	//mailer, err := mailer.NewSendGridMailer(cfg.email.fromEmail, cfg.email.sendGrid.apiKey, templateBuilder)
@@ -93,6 +111,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		store:  store,
+		cache:  cacheStorage,
 		logger: logger,
 		mailer: mailer,
 		auth:   tokenGenerator,

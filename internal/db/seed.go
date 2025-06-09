@@ -125,7 +125,7 @@ var (
 	}
 )
 
-func generateUsers(num int, roleID int64) []*store.User {
+func generateUsers(num int, roleID int64, name string) []*store.User {
 	users := make([]*store.User, num)
 
 	for i := 0; i < num; i++ {
@@ -134,6 +134,9 @@ func generateUsers(num int, roleID int64) []*store.User {
 			Username: username,
 			Email:    username + "" + "@example.com",
 			RoleID:   roleID,
+			Role: store.Role{
+				Name: name,
+			},
 		}
 	}
 	return users
@@ -185,7 +188,7 @@ func Seed(store store.Storage, db *sql.DB) {
 		log.Fatalf("error occurred whilst retreving role data")
 	}
 
-	users := generateUsers(50, role.ID)
+	users := generateUsers(50, role.ID, role.Name)
 
 	tx, _ := db.BeginTx(ctx, nil)
 	for _, user := range users {

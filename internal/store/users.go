@@ -90,7 +90,7 @@ func (us *UserStore) Create(ctx context.Context, tx *sql.Tx, user *User) error {
 }
 
 func (us *UserStore) GetById(ctx context.Context, userID int64) (*User, error) {
-	query := `SELECT u.id, u.username, u.email, u.password, u.created_at, 
+	query := `SELECT u.id, u.username, u.email, u.password, u.created_at, u.is_active,
 	r.id, r.name, r.level, r.description
 	FROM 
 	users u JOIN roles r ON (u.role_id = r.id)
@@ -110,6 +110,7 @@ func (us *UserStore) GetById(ctx context.Context, userID int64) (*User, error) {
 		&user.Email,
 		&user.Password.hash,
 		&user.CreatedAt,
+		&user.IsActive,
 		&user.Role.ID,
 		&user.Role.Name,
 		&user.Role.Level,

@@ -2,7 +2,6 @@ package auth
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -56,7 +55,6 @@ func (jtg *JWTTokenGenerator) ValidateToken(token string) (int64, error) {
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}),
 	)
 	if err != nil {
-		log.Printf("error is %+v \n", err)
 		return 0, err
 	}
 	claims, _ := jwtToken.Claims.(jwt.MapClaims)
@@ -65,6 +63,5 @@ func (jtg *JWTTokenGenerator) ValidateToken(token string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-
 	return userID, nil
 }
