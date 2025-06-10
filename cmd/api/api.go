@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/enrichman/httpgrace"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2" // http-swagger middleware
@@ -153,14 +154,14 @@ func (a *application) run(mux http.Handler) error {
 	docs.SwaggerInfo.Host = a.config.apiURL
 	docs.SwaggerInfo.BasePath = "/v1"
 
-	srv := &http.Server{
-		Addr:         a.config.addr,
-		Handler:      mux,
-		WriteTimeout: time.Second * 30,
-		ReadTimeout:  time.Second * 10,
-		IdleTimeout:  time.Minute,
-	}
+	srv := httpgrace.NewServer(mux,
+		httpgrace.WithServerOptions(
+			httpgrace.WithReadTimeout(30*time.Second),
+			httpgrace.WithWriteTimeout(10*time.Second),
+			httpgrace.WithIdleTimeout(time.Minute),
+		),
+	)
 
 	a.logger.Infow("server started", "addr", a.config.addr, "env", a.config.env, "token exp", a.config.auth.jwt.exp)
-	return srv.ListenAndServe()
+	return srv.ListenAndServe(a.config.addr)
 }

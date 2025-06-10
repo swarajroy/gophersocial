@@ -1,6 +1,8 @@
 module github.com/swarajroy/gophersocial
 
-go 1.23.5
+go 1.24.0
+
+toolchain go1.24.2
 
 require (
 	github.com/go-chi/chi/v5 v5.2.0
@@ -24,6 +26,7 @@ require (
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
+	github.com/enrichman/httpgrace v0.1.0
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
