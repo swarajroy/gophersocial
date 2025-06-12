@@ -129,6 +129,7 @@ func (us *UserStore) GetById(ctx context.Context, userID int64) (*User, error) {
 }
 
 func (us *UserStore) GetByEmail(ctx context.Context, email string) (*User, error) {
+
 	query := `SELECT id, username, email, password, created_at 
 	FROM 
 	users 

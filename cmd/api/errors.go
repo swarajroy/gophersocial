@@ -25,7 +25,7 @@ func (app *application) conflictError(w http.ResponseWriter, r *http.Request, er
 }
 
 func (app *application) unauthorizedError(w http.ResponseWriter, r *http.Request, err error) {
-	app.logger.Errorw("unauthorized error", "method", r.Method, "path", r.URL.Path, "error", err.Error())
+	app.logger.Warnw("unauthorized error", "method", r.Method, "path", r.URL.Path, "error", err.Error())
 	writeJsonError(w, http.StatusUnauthorized, "unauthorized")
 }
 
